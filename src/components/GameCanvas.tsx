@@ -44,23 +44,11 @@ export function GameCanvas({
       ctx.stroke();
     }
 
-    // Draw food with glow effect
+    // Draw food
     const foodX = food.x * cellSize + cellSize / 2;
     const foodY = food.y * cellSize + cellSize / 2;
     const foodRadius = cellSize / 2 - 2;
 
-    // Glow effect
-    const gradient = ctx.createRadialGradient(
-      foodX, foodY, 0,
-      foodX, foodY, foodRadius * 2
-    );
-    gradient.addColorStop(0, 'rgba(250, 204, 21, 0.8)');
-    gradient.addColorStop(0.5, 'rgba(250, 204, 21, 0.3)');
-    gradient.addColorStop(1, 'rgba(250, 204, 21, 0)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(food.x * cellSize - cellSize, food.y * cellSize - cellSize, cellSize * 3, cellSize * 3);
-
-    // Food
     ctx.fillStyle = '#facc15';
     ctx.beginPath();
     ctx.arc(foodX, foodY, foodRadius, 0, Math.PI * 2);
@@ -72,22 +60,10 @@ export function GameCanvas({
       const y = segment.y * cellSize;
       const isHead = index === 0;
 
-      // Glow effect for head
-      if (isHead) {
-        const headGradient = ctx.createRadialGradient(
-          x + cellSize / 2, y + cellSize / 2, 0,
-          x + cellSize / 2, y + cellSize / 2, cellSize
-        );
-        headGradient.addColorStop(0, 'rgba(34, 197, 94, 0.5)');
-        headGradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
-        ctx.fillStyle = headGradient;
-        ctx.fillRect(x - cellSize / 2, y - cellSize / 2, cellSize * 2, cellSize * 2);
-      }
-
       // Calculate color gradient for body
       const intensity = 1 - (index / snake.length) * 0.5;
       const green = Math.floor(197 * intensity);
-      ctx.fillStyle = `rgb(34, ${green}, 94)`;
+      ctx.fillStyle = isHead ? '#22c55e' : `rgb(34, ${green}, 94)`;
 
       // Rounded rectangle for segment
       const padding = 1;
@@ -107,7 +83,7 @@ export function GameCanvas({
       }
     });
 
-    // Border glow
+    // Border
     ctx.strokeStyle = isSpectating ? 'rgba(236, 72, 153, 0.5)' : 'rgba(34, 197, 94, 0.5)';
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, canvasSize - 2, canvasSize - 2);
@@ -121,8 +97,8 @@ export function GameCanvas({
       className="rounded-lg"
       style={{
         boxShadow: isSpectating
-          ? '0 0 30px rgba(236, 72, 153, 0.3), inset 0 0 30px rgba(236, 72, 153, 0.1)'
-          : '0 0 30px rgba(34, 197, 94, 0.3), inset 0 0 30px rgba(34, 197, 94, 0.1)',
+          ? '0 0 20px rgba(236, 72, 153, 0.2)'
+          : '0 0 20px rgba(34, 197, 94, 0.2)',
       }}
     />
   );

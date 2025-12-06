@@ -4,7 +4,7 @@ import { User, LeaderboardEntry, ActiveGame, AuthCredentials, GameMode } from '@
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Mock data storage (simulating database)
-let mockUsers: User[] = [
+const mockUsers: User[] = [
   { id: '1', username: 'PixelMaster', email: 'pixel@game.com', createdAt: '2024-01-15' },
   { id: '2', username: 'NeonViper', email: 'neon@game.com', createdAt: '2024-02-20' },
   { id: '3', username: 'RetroKing', email: 'retro@game.com', createdAt: '2024-03-10' },
@@ -147,7 +147,7 @@ export const api = {
     // Subscribe to game updates (mock implementation)
     subscribeToGame(gameId: string, callback: (game: ActiveGame) => void): () => void {
       const game = mockActiveGames.find(g => g.id === gameId);
-      if (!game) return () => {};
+      if (!game) return () => { };
 
       const interval = setInterval(() => {
         // Simulate game movement
@@ -160,7 +160,7 @@ export const api = {
 
         const move = directions[game.direction];
         const head = game.snake[0];
-        let newHead = { x: head.x + move.x, y: head.y + move.y };
+        const newHead = { x: head.x + move.x, y: head.y + move.y };
 
         // Wrap around for pass-through mode
         if (game.gameMode === 'pass-through') {
@@ -172,7 +172,7 @@ export const api = {
 
         // Check if food eaten
         const ateFood = newHead.x === game.food.x && newHead.y === game.food.y;
-        
+
         game.snake = [newHead, ...game.snake];
         if (!ateFood) {
           game.snake.pop();

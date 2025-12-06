@@ -1,0 +1,16 @@
+{
+  "name": "snake-arena-online",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "scripts": {
+    "dev": "concurrently \"cd backend && make run\" \"cd frontend && npm run dev\"",
+    "install:all": "cd backend && make install && cd ../frontend && npm install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

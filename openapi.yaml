@@ -1,0 +1,306 @@
+openapi: 3.0.0
+info:
+  title: Snake Arena Online API
+  description: API for the Snake Arena Online multiplayer game
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - email
+        - createdAt
+
+    AuthCredentials:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        username:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    GameMode:
+      type: string
+      enum: [walls, pass-through]
+
+    Direction:
+      type: string
+      enum: [UP, DOWN, LEFT, RIGHT]
+
+    GameStatus:
+      type: string
+      enum: [idle, playing, paused, game-over]
+
+    Position:
+      type: object
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+      required:
+        - x
+        - y
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        rank:
+          type: integer
+        username:
+          type: string
+        score:
+          type: integer
+        gameMode:
+          $ref: '#/components/schemas/GameMode'
+        date:
+          type: string
+          format: date
+      required:
+        - id
+        - rank
+        - username
+        - score
+        - gameMode
+        - date
+
+    ActiveGame:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        score:
+          type: integer
+        gameMode:
+          $ref: '#/components/schemas/GameMode'
+        snake:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position'
+        food:
+          $ref: '#/components/schemas/Position'
+        direction:
+          $ref: '#/components/schemas/Direction'
+        startedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - score
+        - gameMode
+        - snake
+        - food
+        - direction
+        - startedAt
+
+paths:
+  /auth/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthCredentials'
+      responses:
+        '200':
+          description: formatted user and token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/signup:
+    post:
+      summary: Register new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthCredentials'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input or user already exists
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      tags: [Auth]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successfully logged out
+
+  /auth/me:
+    get:
+      summary: Get current user
+      tags: [Auth]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated
+
+  /leaderboard:
+    get:
+      summary: Get leaderboard
+      tags: [Leaderboard]
+      parameters:
+        - in: query
+          name: gameMode
+          schema:
+            $ref: '#/components/schemas/GameMode'
+          required: false
+      responses:
+        '200':
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeaderboardEntry'
+
+  /leaderboard/score:
+    post:
+      summary: Submit score
+      tags: [Leaderboard]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                score:
+                  type: integer
+                gameMode:
+                  $ref: '#/components/schemas/GameMode'
+              required:
+                - score
+                - gameMode
+      responses:
+        '200':
+          description: Score submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardEntry'
+
+  /games/active:
+    get:
+      summary: Get all active games
+      tags: [Spectate]
+      responses:
+        '200':
+          description: List of active games
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActiveGame'
+
+  /games/{id}:
+    get:
+      summary: Get specific game state
+      tags: [Spectate]
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Game state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveGame'
+        '404':
+          description: Game not found
+
+  /games/{id}/subscribe:
+    get:
+      summary: Subscribe to game updates (Server-Sent Events)
+      tags: [Spectate]
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Stream of game updates
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/ActiveGame'

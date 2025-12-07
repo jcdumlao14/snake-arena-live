@@ -1,20 +1,24 @@
+import pytest
 from app.models import GameMode
 
-def test_get_leaderboard_empty(client):
-    response = client.get("/leaderboard")
+@pytest.mark.asyncio
+async def test_get_leaderboard_empty(client):
+    response = await client.get("/leaderboard")
     assert response.status_code == 200
     assert response.json() == []
 
-def test_submit_score_unauthorized(client):
-    response = client.post(
+@pytest.mark.asyncio
+async def test_submit_score_unauthorized(client):
+    response = await client.post(
         "/leaderboard/score",
         json={"score": 100, "gameMode": "walls"}
     )
     assert response.status_code == 401
 
-def test_submit_and_get_leaderboard(client):
+@pytest.mark.asyncio
+async def test_submit_and_get_leaderboard(client):
     # Signup
-    signup_resp = client.post(
+    signup_resp = await client.post(
         "/auth/signup",
         json={"email": "u1@e.com", "password": "p", "username": "u1"}
     )
@@ -22,7 +26,7 @@ def test_submit_and_get_leaderboard(client):
     headers = {"Authorization": f"Bearer {token}"}
 
     # Submit score
-    response = client.post(
+    response = await client.post(
         "/leaderboard/score",
         json={"score": 100, "gameMode": "walls"},
         headers=headers
@@ -30,29 +34,32 @@ def test_submit_and_get_leaderboard(client):
     assert response.status_code == 200
     
     # Get leaderboard
-    response = client.get("/leaderboard")
+    response = await client.get("/leaderboard")
     data = response.json()
     assert len(data) == 1
     assert data[0]["score"] == 100
     assert data[0]["username"] == "u1"
 
-def test_leaderboard_sorting(client):
+@pytest.mark.asyncio
+async def test_leaderboard_sorting(client):
     # Signup u1
-    token1 = client.post(
+    resp1 = await client.post(
         "/auth/signup",
         json={"email": "u1@e.com", "password": "p", "username": "u1"}
-    ).json()["token"]
+    )
+    token1 = resp1.json()["token"]
     
     # Signup u2
-    token2 = client.post(
+    resp2 = await client.post(
         "/auth/signup",
         json={"email": "u2@e.com", "password": "p", "username": "u2"}
-    ).json()["token"]
+    )
+    token2 = resp2.json()["token"]
 
-    client.post( "/leaderboard/score", json={"score": 50, "gameMode": "walls"}, headers={"Authorization": f"Bearer {token1}"})
-    client.post( "/leaderboard/score", json={"score": 150, "gameMode": "walls"}, headers={"Authorization": f"Bearer {token2}"})
+    await client.post( "/leaderboard/score", json={"score": 50, "gameMode": "walls"}, headers={"Authorization": f"Bearer {token1}"})
+    await client.post( "/leaderboard/score", json={"score": 150, "gameMode": "walls"}, headers={"Authorization": f"Bearer {token2}"})
 
-    response = client.get("/leaderboard")
+    response = await client.get("/leaderboard")
     data = response.json()
     assert len(data) == 2
     assert data[0]["username"] == "u2" # 150 > 50

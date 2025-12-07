@@ -4,5 +4,12 @@ pydantic[email]==2.6.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 pytest==8.0.0
+pytest-asyncio
 httpx==0.26.0
 python-multipart==0.0.9
+sqlalchemy>=2.0.0
+alembic
+asyncpg
+aiosqlite
+greenlet
+psycopg2-binary

@@ -1,62 +1,45 @@
+from sqlalchemy import Column, Integer, String, DateTime, Enum as SAEnum, JSON, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
-from enum import Enum
-from typing import List, Optional
-from pydantic import BaseModel, EmailStr, Field
+import uuid
 
-class GameMode(str, Enum):
-    WALLS = "walls"
-    PASS_THROUGH = "pass-through"
+from app.database import Base
+from app.schemas import GameMode, Direction, GameStatus
 
-class Direction(str, Enum):
-    UP = "UP"
-    DOWN = "DOWN"
-    LEFT = "LEFT"
-    RIGHT = "RIGHT"
+# Helper definitions for Enums if needed, or use String
+# Helper for GUID
+def generate_uuid():
+    return str(uuid.uuid4())
 
-class GameStatus(str, Enum):
-    IDLE = "idle"
-    PLAYING = "playing"
-    PAUSED = "paused"
-    GAME_OVER = "game-over"
+class User(Base):
+    __tablename__ = "users"
 
-class Position(BaseModel):
-    x: int
-    y: int
+    id = Column(String, primary_key=True, default=generate_uuid)
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-class User(BaseModel):
-    id: str
-    username: str
-    email: EmailStr
-    createdAt: datetime
+class LeaderboardEntry(Base):
+    __tablename__ = "leaderboard"
 
-class AuthCredentials(BaseModel):
-    email: EmailStr
-    password: str
-    username: Optional[str] = None # Username is optional for login if using email, but required for signup usually. The spec has it as required in schema but maybe separate login/signup schemas would be better. Spec says: required: [email, password] for AuthCredentials. Wait, the spec has 'username' in AuthCredentials but only email/password required? No, let me check spec again.
-    # Spec line 37: AuthCredentials... properties: email, password, username. required: [email, password]. So username is optional.
+    id = Column(String, primary_key=True, default=generate_uuid)
+    username = Column(String, index=True, nullable=False) # In real app, ForeignKey to users.id
+    score = Column(Integer, nullable=False)
+    game_mode = Column(String, nullable=False) # Store Enum as string
+    date = Column(DateTime, default=datetime.utcnow)
+    
+    # We don't store rank, it's calculated on query key
 
-class AuthResponse(BaseModel):
-    user: User
-    token: str
+class ActiveGame(Base):
+    __tablename__ = "active_games"
 
-class LeaderboardEntry(BaseModel):
-    id: str
-    rank: int
-    username: str
-    score: int
-    gameMode: GameMode
-    date: datetime
-
-class ActiveGame(BaseModel):
-    id: str
-    username: str
-    score: int
-    gameMode: GameMode
-    snake: List[Position]
-    food: Position
-    direction: Direction
-    startedAt: datetime
-
-class ScoreSubmission(BaseModel):
-    score: int
-    gameMode: GameMode
+    id = Column(String, primary_key=True, default=generate_uuid)
+    username = Column(String, nullable=False)
+    score = Column(Integer, default=0)
+    game_mode = Column(String, nullable=False)
+    snake = Column(JSON, nullable=False) # List[dict] or List[Position]
+    food = Column(JSON, nullable=False)  # dict or Position
+    direction = Column(String, nullable=False)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String, default="playing") # idle, playing, paused, game-over

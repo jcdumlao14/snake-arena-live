@@ -10,6 +10,8 @@ app = FastAPI(
 
 # CORS Configuration
 origins = [
+    "http://localhost",
+    "http://localhost:80",
     "http://localhost:3000",
     "http://localhost:5173", # Common vite port
 ]
@@ -23,10 +25,17 @@ app.add_middleware(
 )
 
 # Include Routers
-app.include_router(auth.router)
-app.include_router(leaderboard.router)
-app.include_router(spectate.router)
+app.include_router(auth.router, prefix="/api")
+app.include_router(leaderboard.router, prefix="/api")
+app.include_router(spectate.router, prefix="/api")
 
 @app.get("/")
 async def root():
     return {"message": "Welcome to Snake Arena Online API"}
+
+from app.database import engine, Base
+
+@app.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)

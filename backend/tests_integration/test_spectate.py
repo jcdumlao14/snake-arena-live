@@ -1,20 +1,24 @@
+import pytest
 from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
+from app import crud
+from app.schemas import ActiveGame, GameMode, Direction, Position
 
-def test_get_active_games_empty(client):
-    response = client.get("/games/active")
+@pytest.mark.asyncio
+async def test_get_active_games_empty(client):
+    response = await client.get("/games/active")
     assert response.status_code == 200
     assert response.json() == []
 
-def test_get_game_state_not_found(client):
-    response = client.get("/games/nonexistent")
+@pytest.mark.asyncio
+async def test_get_game_state_not_found(client):
+    response = await client.get("/games/nonexistent")
     assert response.status_code == 404
 
 # Mocking internal DB state for testing spectate as we don't have endpoints to creating active games externally easily
 # (Active games start via websocket usually, but here we just mock DB state manually for test)
-def test_get_active_game_state(client):
-    from app.db import db
-    from app.models import ActiveGame, GameMode, Direction, Position
-    
+@pytest.mark.asyncio
+async def test_get_active_game_state(client, session: AsyncSession):
     game = ActiveGame(
         id="game1",
         username="u1",
@@ -25,9 +29,10 @@ def test_get_active_game_state(client):
         direction=Direction.UP,
         startedAt=datetime.now()
     )
-    db.create_game(game)
+    # Use CRUD to create game
+    await crud.create_game(session, game)
     
-    response = client.get("/games/game1")
+    response = await client.get("/games/game1")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "game1"

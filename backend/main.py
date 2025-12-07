@@ -1,6 +1,7 @@
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
 def main():
-    print("Hello from backend!")
-
-
-if __name__ == "__main__":
-    main()
+    return {"message": "Hello from backend!"}

@@ -1,5 +1,8 @@
-def test_signup(client):
-    response = client.post(
+import pytest
+
+@pytest.mark.asyncio
+async def test_signup(client):
+    response = await client.post(
         "/auth/signup",
         json={"email": "test@example.com", "password": "password123", "username": "testuser"}
     )
@@ -9,8 +12,9 @@ def test_signup(client):
     assert data["user"]["username"] == "testuser"
     assert data["user"]["email"] == "test@example.com"
 
-def test_signup_missing_username(client):
-    response = client.post(
+@pytest.mark.asyncio
+async def test_signup_missing_username(client):
+    response = await client.post(
         "/auth/signup",
         json={"email": "test@example.com", "password": "password123"}
     )
@@ -21,15 +25,16 @@ def test_signup_missing_username(client):
     # So it should be 400.
     assert response.status_code == 400
 
-def test_login(client):
+@pytest.mark.asyncio
+async def test_login(client):
     # Signup first
-    client.post(
+    await client.post(
         "/auth/signup",
         json={"email": "test@example.com", "password": "password123", "username": "testuser"}
     )
     
     # Login
-    response = client.post(
+    response = await client.post(
         "/auth/login",
         json={"email": "test@example.com", "password": "password123"}
     )
@@ -38,8 +43,9 @@ def test_login(client):
     assert "token" in data
     assert data["user"]["username"] == "testuser"
 
-def test_login_invalid_credentials(client):
-    response = client.post(
+@pytest.mark.asyncio
+async def test_login_invalid_credentials(client):
+    response = await client.post(
         "/auth/login",
         json={"email": "wrong@example.com", "password": "wrong"}
     )

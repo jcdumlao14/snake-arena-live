@@ -2,38 +2,44 @@ import asyncio
 import json
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db import db
-from app.models import ActiveGame
+from app.schemas import ActiveGame
+from app.database import get_db, AsyncSessionLocal
+import app.crud as crud
 
 router = APIRouter(prefix="/games", tags=["Spectate"])
 
 @router.get("/active", response_model=List[ActiveGame])
-async def get_active_games():
-    return db.list_active_games()
+async def get_active_games(db: AsyncSession = Depends(get_db)):
+    return await crud.list_active_games(db)
 
 @router.get("/{id}", response_model=ActiveGame)
-async def get_game_state(id: str):
-    game = db.get_game(id)
+async def get_game_state(id: str, db: AsyncSession = Depends(get_db)):
+    game = await crud.get_game(db, id)
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
     return game
 
 @router.get("/{id}/subscribe")
 async def subscribe_game(id: str, request: Request):
-    game = db.get_game(id)
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
+    # Initial check (using a temporary session)
+    async with AsyncSessionLocal() as db:
+        game = await crud.get_game(db, id)
+        if not game:
+            raise HTTPException(status_code=404, detail="Game not found")
     
     async def event_generator():
         while True:
             if await request.is_disconnected():
                 break
             
-            # Fetch latest state (in a real app this would come from a channel/pubsub)
-            current_game = db.get_game(id)
+            # Fetch latest state with a new session each time
+            async with AsyncSessionLocal() as db:
+                current_game = await crud.get_game(db, id)
+            
             if not current_game:
                 break
             

@@ -5,9 +5,11 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 import bcrypt
 import uuid
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import User, AuthCredentials, AuthResponse
-from app.db import db
+from app.schemas import User, AuthCredentials, AuthResponse
+from app.database import get_db
+import app.crud as crud
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -36,7 +38,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -50,14 +52,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     except JWTError:
         raise credentials_exception
     
-    user = db.get_user_by_username(username)
+    user = await crud.get_user_by_username(db, username)
     if user is None:
         raise credentials_exception
     return user
 
 @router.post("/login", response_model=AuthResponse)
-async def login(credentials: AuthCredentials):
-    user = db.get_user_by_email(credentials.email)
+async def login(credentials: AuthCredentials, db: AsyncSession = Depends(get_db)):
+    user = await crud.get_user_by_email(db, credentials.email)
     if not user:
         # Check if maybe they sent username in email field (common pattern), but spec says email format.
         # Strict adherence to spec: check email.
@@ -67,7 +69,7 @@ async def login(credentials: AuthCredentials):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    stored_hash = db.get_password_hash(credentials.email)
+    stored_hash = await crud.get_password_hash(db, credentials.email)
     if not verify_password(credentials.password, stored_hash):
          raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -82,7 +84,7 @@ async def login(credentials: AuthCredentials):
     return AuthResponse(user=user, token=access_token)
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-async def signup(credentials: AuthCredentials):
+async def signup(credentials: AuthCredentials, db: AsyncSession = Depends(get_db)):
     if not credentials.username:
         raise HTTPException(status_code=400, detail="Username required for signup")
         
@@ -94,7 +96,7 @@ async def signup(credentials: AuthCredentials):
             createdAt=datetime.now(timezone.utc)
         )
         hashed_pw = get_password_hash(credentials.password)
-        db.create_user(new_user, hashed_pw)
+        await crud.create_user(db, new_user, hashed_pw)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -112,3 +114,4 @@ async def logout(current_user: User = Depends(get_current_user)):
 @router.get("/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
+

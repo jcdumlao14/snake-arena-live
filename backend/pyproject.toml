@@ -10,3 +10,4 @@ dependencies = []
 filterwarnings = [
     "ignore::DeprecationWarning:jose.jwt:311"
 ]
+asyncio_mode = "auto"

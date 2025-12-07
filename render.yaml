@@ -17,7 +17,7 @@ services:
         value: 10000
 
   # Frontend Static Site
-  - type: static
+  - type: web
     name: snake-arena-frontend
     env: static
     region: oregon

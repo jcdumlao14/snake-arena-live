@@ -20,7 +20,7 @@ services:
   - type: web
     name: snake-arena-frontend
     env: static
-    region: oregon
+
     buildCommand: |
       cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
@@ -29,11 +29,11 @@ services:
         fromService:
           type: web
           name: snake-arena-backend
-          property: url
+          property: host
 
 databases:
   - name: snake-arena-db
     databaseName: snake_arena
-    user: postgres
+
     region: oregon
     plan: free # Free tier database (expires naturally after 90 days)
